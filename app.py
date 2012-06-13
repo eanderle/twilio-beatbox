@@ -43,13 +43,8 @@ def record_handler():
 
     flask_dir = os.path.dirname(os.path.abspath(__file__))
     static_dir = os.path.join(flask_dir, "static/")
-    #raise Exception(os.listdir(static_dir))
-    filename = os.path.join(static_dir, request.values.get('From') + '-scratch')
-    sys.stderr.write(filename + '\n')
-    raise Exception(urllib.urlretrieve(request.values.get('RecordingUrl'), filename))
-    tmp_file = wave.open(filename)
-    s = tmp_file.readframes(NUM_FRAMES)
-    os.remove(filename)
+    recording = wave.open(urllib.urlopen(request.values.get('RecordingUrl')))
+    s = recording.readframes(NUM_FRAMES)
     if len(s) == 0:
         s = '\x00' * NUM_FRAMES
     elif len(s) < NUM_FRAMES:
@@ -60,15 +55,17 @@ def record_handler():
     if current_song_filename != '':
         os.remove(os.path.join(static_dir, current_song_filename))
     current_song_filename = str(num_tracks) + base_song_filename
-    fuu_full_path = os.path.join(static_dir, current_song_filename)
-    fuu = wave.open(fuu_full_path, 'w')
-    fuu.setnchannels(1)
-    fuu.setsampwidth(2)
-    fuu.setframerate(8000)
-    fuu.writeframes(song)
-    fuu.close()
+
+    song_file_full_path = os.path.join(static_dir, current_song_filename)
+    song_file = wave.open(song_file_full_path, 'w')
+    song_file.setnchannels(1)
+    song_file.setsampwidth(2)
+    song_file.setframerate(8000)
+    song_file.writeframes(song)
+    song_file.close()
     num_tracks += 1
     r.play(url_for('static', filename=current_song_filename))
+
     r.say('Press 1 to record another track or 2 to finish')
     r.gather(method='GET', numDigits=1, action='/user_option')
     return str(r)
