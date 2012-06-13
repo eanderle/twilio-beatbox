@@ -8,6 +8,7 @@ import wave
 import time
 import hashlib
 import string
+import random
 
 from flask import Flask, request, url_for
 app = Flask(__name__)
@@ -33,6 +34,7 @@ def beatbox():
     r.record(action='/record_handler', method='GET', maxLength=5)
 
     base_song_filename = request.values.get('From') + '-' + str(time.time()) + '.wav'
+    random.seed()
     return str(r)
 
 @app.route('/record_handler')
@@ -48,7 +50,7 @@ def record_handler():
     rec_file = urllib.urlopen(request.values.get('RecordingUrl'))
 
     while string.find(rec_file.read(), 'RestException'):
-        rec_file = urllib.urlopen(request.values.get('RecordingUrl'))
+        rec_file = urllib.urlopen(request.values.get('RecordingUrl') + '?' + str(random.randInt) + '=' + str(random.randInt))
 
     sys.stderr.write(rec_file.read() + '\n')
     recording = wave.open(rec_file)
