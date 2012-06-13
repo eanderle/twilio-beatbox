@@ -43,7 +43,10 @@ def record_handler():
 
     flask_dir = os.path.dirname(os.path.abspath(__file__))
     static_dir = os.path.join(flask_dir, "static/")
-    recording = wave.open(urllib.urlopen(request.values.get('RecordingUrl')))
+    sys.stderr.print('url ' + request.values.get('RecordingUrl') + '\n')
+    rec_file = urllib.urlopen(request.values.get('RecordingUrl'))
+    sys.stderr.print(rec_file.read() + '\n')
+    recording = wave.open(rec_file)
     s = recording.readframes(NUM_FRAMES)
     if len(s) == 0:
         s = '\x00' * NUM_FRAMES
