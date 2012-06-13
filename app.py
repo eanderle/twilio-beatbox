@@ -18,24 +18,37 @@ app = Flask(__name__)
 
 NUM_FRAMES = 80000 # 8000 samples/second * 5 seconds = 40000
 
-song = '\x00' * NUM_FRAMES
-base_song_filename = ''
-current_song_filename = ''
-num_tracks = 0
-number = 0
-greeting_url = ''
+song = {}
+base_song_filename = {}
+current_song_filename = {}
+num_tracks = {}
+number = {}
+greeting_url = {}
 
 rest = TwilioRestClient()
 app.SERVER_NAME = 'twilio-beatbox.herokuapp.com'
 
 @app.route('/')
 def beatbox():
+    global song
     global base_song_filename
+    global current_song_filename
+    global num_tracks
+    global number
+    global greeting_url
+
+    phone_number = request.values.get('From')
+    song.update({phone_number:'\x00' * NUM_FRAMES})
+    base_song_filename.update({phone_number:phone_number + '-' + str(time.time()) + '.wav'})
+    current_song_filename.update({phone_number:''})
+    num_tracks.update({phone_number:0})
+    number.update({phone_number:0})
+    greeting_url.update({phone_number:''})
+
     r = twiml.Response()
     r.say("Welcome to Twilio Beatbox! Record a 5 second loop after the ding.")
     r.record(action='/record_handler', method='GET', maxLength=5)
 
-    base_song_filename = request.values.get('From') + '-' + str(time.time()) + '.wav'
     return str(r)
 
 @app.route('/record_handler')
@@ -44,10 +57,10 @@ def record_handler():
     global current_song_filename
     global num_tracks
     r = twiml.Response()
+    phone_number = request.values.get('From')
 
     flask_dir = os.path.dirname(os.path.abspath(__file__))
     static_dir = os.path.join(flask_dir, "static/")
-    sys.stderr.write('url ' + request.values.get('RecordingUrl') + '\n')
     rec_string = urllib.urlopen(request.values.get('RecordingUrl')).read()
 
     while string.find(rec_string, 'RestException') != -1:
@@ -60,22 +73,22 @@ def record_handler():
         s = '\x00' * NUM_FRAMES
     elif len(s) < NUM_FRAMES:
         s = (s * ((NUM_FRAMES / len(s)) + 1))
-    song = audioop.add(s[:NUM_FRAMES], song, 2)
+    song[phone_number] = audioop.add(s[:NUM_FRAMES], song[phone_number], 2)
 
     # Need a unique filename so Twilio won't cache it
-    if current_song_filename != '':
-        os.remove(os.path.join(static_dir, current_song_filename))
-    current_song_filename = str(num_tracks) + base_song_filename
+    if current_song_filename[phone_number] != '':
+        os.remove(os.path.join(static_dir, current_song_filename[phone_number]))
+    current_song_filename[phone_number] = str(num_tracks[phone_number]) + base_song_filename[phone_number]
 
-    song_file_full_path = os.path.join(static_dir, current_song_filename)
+    song_file_full_path = os.path.join(static_dir, current_song_filename[phone_number])
     song_file = wave.open(song_file_full_path, 'w')
     song_file.setnchannels(1)
     song_file.setsampwidth(2)
     song_file.setframerate(8000)
-    song_file.writeframes(song)
+    song_file.writeframes(song[phone_number])
     song_file.close()
-    num_tracks += 1
-    r.play(url_for('static', filename=current_song_filename))
+    num_tracks[phone_number] += 1
+    r.play(url_for('static', filename=current_song_filename[phone_number]))
 
     with r.gather(method='GET', numDigits=1, action='/user_option') as g:
         g.say('Press 1 to record another track or 2 to finish')
@@ -84,11 +97,12 @@ def record_handler():
 @app.route('/user_option')
 def user_option():
     r = twiml.Response()
+    phone_number = request.values.get('From')
     if request.values.get('Digits') == '1':
         r.record(action='/record_handler', method='GET', maxLength=5)
     elif request.values.get('Digits') == '2':
         r.say('Here is your song')
-        r.play(url_for('static', filename=current_song_filename), loop=2)
+        r.play(url_for('static', filename=current_song_filename[phone_number]))
         with r.gather(method='GET', numDigits=10, action='/phone_number') as g:
             g.say('Enter a phone number to send this song to')
     return str(r)
@@ -97,7 +111,7 @@ def user_option():
 def phone_number():
     global number
     r = twiml.Response()
-    number = request.values.get('Digits')
+    number[request.values.get('From')] = request.values.get('Digits')
     r.say('Record a greeting for your friend. Push pound when finished')
     r.record(method='GET', finishOnKey='#', action='/send_song')
     return str(r)
@@ -105,19 +119,37 @@ def phone_number():
 @app.route('/send_song')
 def send_song():
     global greeting_url
-    greeting_url = request.values.get('RecordingUrl')
+    phone_number = request.values.get('From')
+    greeting_url[phone_number] = request.values.get('RecordingUrl')
     r = twiml.Response()
     r.say('Sending song. Goodbye')
-    call = rest.calls.create(to=number,
+    call = rest.calls.create(to=number[phone_number],
             from_='6164218012',
-            url=url_for('play_song', _external=True))
+            url=url_for('play_song', _external=True) + '?FromLOL=' + urllib.quote(request.values.get('From')))
     return str(r)
 
 @app.route('/play_song', methods=['POST'])
 def play_song():
+    global song
+    global base_song_filename
+    global current_song_filename
+    global num_tracks
+    global number
+    global greeting_url
+
+    phone_number = request.values.get('FromLOL')
+    sys.stderr.write(str(greeting_url.keys()) + '\n')
     r = twiml.Response()
-    r.play(greeting_url)
-    r.play(url_for('static', filename=current_song_filename), loop=0)
+    r.play(greeting_url[phone_number])
+    r.play(url_for('static', filename=current_song_filename[phone_number]), loop=0)
+
+    song[phone_number] = ''
+    base_song_filename[phone_number] = ''
+    current_song_filename[phone_number] = ''
+    num_tracks[phone_number] = 0
+    number[phone_number] = ''
+    greeting_url[phone_number] = ''
+
     return str(r)
 
 if __name__ == '__main__':
