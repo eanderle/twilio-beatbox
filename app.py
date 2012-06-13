@@ -33,7 +33,6 @@ def beatbox():
     r.record(action='/record_handler', method='GET', maxLength=5)
 
     base_song_filename = request.values.get('From') + '-' + str(time.time()) + '.wav'
-    random.seed()
     return str(r)
 
 @app.route('/record_handler')
