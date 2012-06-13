@@ -50,7 +50,7 @@ def record_handler():
     rec_file = urllib.urlopen(request.values.get('RecordingUrl'))
 
     while string.find(rec_file.read(), 'RestException'):
-        rec_file = urllib.urlopen(request.values.get('RecordingUrl') + '?' + str(random.randInt()) + '=' + str(random.randInt()))
+        rec_file = urllib.urlopen(request.values.get('RecordingUrl') + '?' + str(random.randint()) + '=' + str(random.randint()))
 
     sys.stderr.write(rec_file.read() + '\n')
     recording = wave.open(rec_file)
