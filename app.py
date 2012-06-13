@@ -16,6 +16,8 @@ app = Flask(__name__)
 # (786) 302-9603
 # 714 869 7503
 
+NUM_FRAMES = 80000 # 8000 samples/second * 5 seconds = 40000
+
 song = '\x00' * NUM_FRAMES
 base_song_filename = ''
 current_song_filename = ''
@@ -23,7 +25,6 @@ num_tracks = 0
 number = 0
 greeting_url = ''
 
-NUM_FRAMES = 80000 # 8000 samples/second * 5 seconds = 40000
 rest = TwilioRestClient()
 app.SERVER_NAME = 'twilio-beatbox.herokuapp.com'
 
