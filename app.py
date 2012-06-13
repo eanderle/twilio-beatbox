@@ -22,7 +22,7 @@ num_tracks = 0
 number = 0
 rest = TwilioRestClient()
 greeting_url = ''
-host = 'http://4bz5.localtunnel.com'
+app.SERVER_NAME = 'twilio-beatbox.herokuapp.com'
 
 @app.route('/')
 def beatbox():
@@ -99,7 +99,7 @@ def send_song():
     r.say('Sending song')
     call = rest.calls.create(to=number,
             from_='6164218012',
-            url=host + '/play_song')
+            url=url_for('play_song', _external=True))
     return str(r)
 
 @app.route('/play_song', methods=['POST'])
