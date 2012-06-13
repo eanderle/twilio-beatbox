@@ -77,8 +77,8 @@ def record_handler():
     num_tracks += 1
     r.play(url_for('static', filename=current_song_filename))
 
-    r.say('Press 1 to record another track or 2 to finish')
-    r.gather(method='GET', numDigits=1, action='/user_option')
+    with r.gather(method='GET', numDigits=1, action='/user_option') as g:
+        g.say('Press 1 to record another track or 2 to finish')
     return str(r)
 
 @app.route('/user_option')
@@ -89,8 +89,8 @@ def user_option():
     elif request.values.get('Digits') == '2':
         r.say('Here is your song')
         r.play(url_for('static', filename=current_song_filename), loop=2)
-        r.say('Enter a phone number to send this song to')
-        r.gather(method='GET', numDigits=10, action='/phone_number')
+        with r.gather(method='GET', numDigits=10, action='/phone_number') as g:
+            g.say('Enter a phone number to send this song to')
     return str(r)
 
 @app.route('/phone_number')
@@ -98,8 +98,8 @@ def phone_number():
     global number
     r = twiml.Response()
     number = request.values.get('Digits')
-    r.say('Record a greeting for your friend')
-    r.record(method='GET', finishOnKey='#', action='/send_song')
+    with r.record(method='GET', finishOnKey='#', action='/send_song') as g:
+        g.say('Record a greeting for your friend. Push pound when finished')
     return str(r)
 
 @app.route('/send_song')
@@ -107,7 +107,7 @@ def send_song():
     global greeting_url
     greeting_url = request.values.get('RecordingUrl')
     r = twiml.Response()
-    r.say('Sending song')
+    r.say('Sending song. Goodbye')
     call = rest.calls.create(to=number,
             from_='6164218012',
             url=url_for('play_song', _external=True))
