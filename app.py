@@ -7,6 +7,7 @@ import sys
 import wave
 import time
 import hashlib
+import string
 
 from flask import Flask, request, url_for
 app = Flask(__name__)
@@ -45,6 +46,10 @@ def record_handler():
     static_dir = os.path.join(flask_dir, "static/")
     sys.stderr.write('url ' + request.values.get('RecordingUrl') + '\n')
     rec_file = urllib.urlopen(request.values.get('RecordingUrl'))
+
+    while string.find(rec_file.read(), 'RestException'):
+        rec_file = urllib.urlopen(request.values.get('RecordingUrl'))
+
     sys.stderr.write(rec_file.read() + '\n')
     recording = wave.open(rec_file)
     s = recording.readframes(NUM_FRAMES)
