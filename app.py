@@ -43,10 +43,10 @@ def record_handler():
 
     flask_dir = os.path.dirname(os.path.abspath(__file__))
     static_dir = os.path.join(flask_dir, "static/")
-    raise Exception(os.listdir(static_dir))
+    #raise Exception(os.listdir(static_dir))
     filename = os.path.join(static_dir, request.values.get('From') + '-scratch')
     sys.stderr.write(filename + '\n')
-    urllib.urlretrieve(request.values.get('RecordingUrl'), filename)
+    raise Exception(urllib.urlretrieve(request.values.get('RecordingUrl'), filename))
     tmp_file = wave.open(filename)
     s = tmp_file.readframes(NUM_FRAMES)
     os.remove(filename)
