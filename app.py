@@ -98,8 +98,8 @@ def phone_number():
     global number
     r = twiml.Response()
     number = request.values.get('Digits')
-    with r.record(method='GET', finishOnKey='#', action='/send_song') as g:
-        g.say('Record a greeting for your friend. Push pound when finished')
+    r.say('Record a greeting for your friend. Push pound when finished')
+    r.record(method='GET', finishOnKey='#', action='/send_song')
     return str(r)
 
 @app.route('/send_song')
