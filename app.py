@@ -4,34 +4,46 @@ import audioop
 import urllib
 import sys
 import wave
+import hashlib
 
-from flask import Flask, request
+from flask import Flask, request, url_for
 app = Flask(__name__)
 
-song = ' ' * 1000
+NUM_FRAMES = 20000
+song = '\x00' * NUM_FRAMES
 
 @app.route('/')
 def beatbox():
     r = twiml.Response()
     #r.say("Welcome to Twilio Beatbox! Record a loop after the ding. Press pound when finished.")
-    r.record(action='/record_callback', method='GET', finishOnKey='#')
+    r.record(action='/record_handler', method='GET', finishOnKey='#')
     return str(r)
 
-@app.route('/record_callback')
+@app.route('/record_handler')
 def record_handler():
     global song
     r = twiml.Response()
-    tmp_file = wave.open(urllib.urlretrieve(request.values.get('RecordingUrl'))[0])
-    sys.stderr.write('filename: ' + urllib.urlretrieve(request.values.get('RecordingUrl'))[0] + '\n')
-    s = tmp_file.readframes(1000)
+    filename = urllib.urlretrieve(request.values.get('RecordingUrl'))[0]
+    tmp_file = wave.open(filename)
+    s = tmp_file.readframes(NUM_FRAMES)
     if len(s) == 0:
-        s = ' ' * 1000
-    elif len(s) < 1000:
-        s = (s * ((1000 / len(s)) + 1))
-    sys.stderr.write('len s: ' + str(len(s)))
-    sys.stderr.write('len song: ' + str(len(song)))
-    song = audioop.add(s[:1000], song, 2)
-    r.play(request.values.get('RecordingUrl'))
+        s = '\x00' * NUM_FRAMES
+    elif len(s) < NUM_FRAMES:
+        s = (s * ((NUM_FRAMES / len(s)) + 1))
+    song = audioop.add(s[:NUM_FRAMES], song, 2)
+
+    flask_dir = os.path.dirname(os.path.abspath(__file__))
+    static_dir = os.path.join(flask_dir, "static/")
+
+    fuu_name = hashlib.sha224(song).hexdigest() + '.wav'
+    fuu = wave.open(os.path.join(static_dir, fuu_name), 'w')
+    fuu.setnchannels(1)
+    fuu.setsampwidth(2)
+    fuu.setframerate(8000)
+    fuu.writeframes(song)
+    fuu.close()
+    r.play(url_for('static', filename=fuu_name))
+    os.remove(fuu_name)
     r.say('Press 1 to record another track or 2 to finish')
     r.gather(method='GET', numDigits=1, action='/user_option')
     return str(r)
@@ -39,8 +51,10 @@ def record_handler():
 @app.route('/user_option')
 def user_option():
     ret = ''
-    if request.values.get('Digits') == 1:
-        ret = str(twiml.Response().record(action='/record_handler', method='GET', finishOnKey='#'))
+    if request.values.get('Digits') == '1':
+        r = twiml.Response()
+        r.record(action='/record_handler', method='GET', finishOnKey='#')
+        ret = str(r)
     return ret
 
 if __name__ == '__main__':
