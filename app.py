@@ -109,8 +109,6 @@ def user_option():
     if request.values.get('Digits') == '1':
         r.record(action='/record_handler', method='GET', maxLength=5)
     elif request.values.get('Digits') == '2':
-        r.say('Here is your song')
-        r.play(url_for('static', filename=current_song_filename[phone_number]))
         with r.gather(method='GET', numDigits=10, action='/phone_number') as g:
             g.say('Enter a phone number to send this song to')
     return str(r)
