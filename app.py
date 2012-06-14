@@ -134,7 +134,7 @@ def send_song():
     static_dir = os.path.join(flask_dir, "static/")
     song_file_full_path = os.path.join(static_dir, current_song_filename[phone_number])
     track = soundcloud_client.post('/tracks', track={
-        'title': phone_number + "'s song " + str(num_songs[phone_number]),
+        'title': phone_number[-4:] + "'s song " + str(num_songs[phone_number]),
         'asset_data': open(song_file_full_path, 'rb')
     })
 
