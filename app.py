@@ -14,9 +14,6 @@ import soundcloud
 from flask import Flask, request, url_for
 app = Flask(__name__)
 
-# (786) 302-9603
-# 714 869 7503
-
 NUM_FRAMES = 80000 # 8000 samples/second * 5 seconds = 40000
 
 song = {}
