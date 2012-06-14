@@ -9,6 +9,7 @@ import time
 import hashlib
 import string
 import StringIO
+import soundcloud
 
 from flask import Flask, request, url_for
 app = Flask(__name__)
@@ -24,8 +25,10 @@ current_song_filename = {}
 num_tracks = {}
 number = {}
 greeting_url = {}
+num_songs = {}
 
 rest = TwilioRestClient()
+soundcloud_client = soundcloud.Client(client_id=os.environ['CLIENT_ID'], client_secret=os.environ['CLIENT_SECRET'], username=os.environ['USERNAME'], password=os.environ['PASSWORD'])
 app.SERVER_NAME = 'twilio-beatbox.herokuapp.com'
 
 @app.route('/')
@@ -36,6 +39,7 @@ def beatbox():
     global num_tracks
     global number
     global greeting_url
+    global num_songs
 
     phone_number = request.values.get('From')
     song.update({phone_number:'\x00' * NUM_FRAMES})
@@ -44,6 +48,10 @@ def beatbox():
     num_tracks.update({phone_number:0})
     number.update({phone_number:0})
     greeting_url.update({phone_number:''})
+    if phone_number in num_songs:
+        num_songs[phone_number] += 1
+    else:
+        num_songs.update({phone_number:1})
 
     r = twiml.Response()
     r.say("Welcome to Twilio Beatbox! Record a 5 second loop after the ding.")
@@ -123,6 +131,15 @@ def send_song():
     greeting_url[phone_number] = request.values.get('RecordingUrl')
     r = twiml.Response()
     r.say('Sending song. Goodbye')
+
+    flask_dir = os.path.dirname(os.path.abspath(__file__))
+    static_dir = os.path.join(flask_dir, "static/")
+    song_file_full_path = os.path.join(static_dir, current_song_filename[phone_number])
+    track = soundcloud_client.post('/tracks', track={
+        'title': phone_number + "'s song " + str(num_songs[phone_number]),
+        'asset_data': open(song_file_full_path, 'rb')
+    })
+
     call = rest.calls.create(to=number[phone_number],
             from_='6164218012',
             url=url_for('play_song', _external=True) + '?FromLOL=' + urllib.quote(request.values.get('From')))

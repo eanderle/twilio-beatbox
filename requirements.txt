@@ -2,7 +2,14 @@ Flask==0.8
 Jinja2==2.6
 PyJWT==0.1.2
 Werkzeug==0.8.3
+certifi==0.0.8
+chardet==1.0.1
 distribute==0.6.24
+fudge==1.0.3
 httplib2==0.7.4
+nose==1.1.2
+requests==0.10.1
+simplejson==2.5.2
+soundcloud==0.3
 twilio==3.3.6
 wsgiref==0.1.2
