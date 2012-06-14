@@ -109,7 +109,14 @@ def user_option():
     if request.values.get('Digits') == '1':
         r.record(action='/record_handler', method='GET', maxLength=5)
     elif request.values.get('Digits') == '2':
-        with r.gather(method='GET', numDigits=10, action='/phone_number') as g:
+        flask_dir = os.path.dirname(os.path.abspath(__file__))
+        static_dir = os.path.join(flask_dir, "static/")
+        song_file_full_path = os.path.join(static_dir, current_song_filename[phone_number])
+        track = soundcloud_client.post('/tracks', track={
+            'title': phone_number[-4:] + "'s song " + str(num_songs[phone_number]),
+            'asset_data': open(song_file_full_path, 'rb')
+        })
+        with r.gather(method='GET', numDigits=10, action='/phone_number', timeout=30) as g:
             g.say('Enter a phone number to send this song to')
     return str(r)
 
@@ -129,14 +136,6 @@ def send_song():
     greeting_url[phone_number] = request.values.get('RecordingUrl')
     r = twiml.Response()
     r.say('Sending song. Goodbye')
-
-    flask_dir = os.path.dirname(os.path.abspath(__file__))
-    static_dir = os.path.join(flask_dir, "static/")
-    song_file_full_path = os.path.join(static_dir, current_song_filename[phone_number])
-    track = soundcloud_client.post('/tracks', track={
-        'title': phone_number[-4:] + "'s song " + str(num_songs[phone_number]),
-        'asset_data': open(song_file_full_path, 'rb')
-    })
 
     call = rest.calls.create(to=number[phone_number],
             from_='6164218012',
